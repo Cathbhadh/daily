@@ -14,7 +14,10 @@ def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
     data = response.json()
-    return pd.DataFrame(data)
+
+    data_dict = {key: [d.get(key) for d in data] for key in set().union(*data)}
+
+    return pd.DataFrame(data_dict)
 
 def count_stats(data):
     total_likes = data['likes'].sum()
