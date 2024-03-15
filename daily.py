@@ -4,6 +4,12 @@ import pandas as pd
 import concurrent.futures
 
 @st.cache_data(ttl=7200)
+def fetch_and_concat_data(offsets):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
+        all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
+    return all_data
+
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
@@ -25,9 +31,7 @@ def main():
     max_posts = 50000
     offsets = range(0, max_posts, 500)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
-        all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
+    all_data = fetch_and_concat_data(offsets)
 
     total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts = count_stats(all_data)
 
