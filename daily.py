@@ -5,10 +5,17 @@ import pandas as pd
 import concurrent.futures
 
 def fetch_and_concat_data(offsets):
+    all_data = []
+    chunksize = 10000  # Adjust this value based on your available memory
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
-        all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
-    return all_data
+        for offset in offsets:
+            data = fetch_data_for_offset(offset)
+            for chunk in pd.DataFrame(data).chunks(chunksize):
+                all_data.append(chunk)
+
+    return pd.concat(all_data, ignore_index=True)
+
 
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
