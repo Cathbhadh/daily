@@ -10,7 +10,6 @@ def fetch_and_concat_data(offsets):
         all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
     return all_data
 
-@st.cache_data(ttl=7200)
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
@@ -27,18 +26,20 @@ def fetch_data_for_offset(offset):
 
     return pd.DataFrame(data_dict)
 
-@st.cache_data(ttl=7200)
 def count_stats(data):
+    data['nsfw'] = data['nsfw'].astype(bool)
+
     total_likes = data['likes'].sum()
     total_posts = len(data)
     nsfw_posts = data['nsfw'].sum()
     nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
     date_counts = data['created_at'].str.split('T', expand=True)[0].value_counts().sort_index(ascending=False)
-    nsfw_likes = data.loc[data['nsfw'].notna() & data['nsfw'], 'likes'].sum()
-    non_nsfw_likes = data.loc[data['nsfw'].notna() & (~data['nsfw']), 'likes'].sum()
+    nsfw_likes = data[data['nsfw']]['likes'].sum()
+    non_nsfw_likes = data[~data['nsfw']]['likes'].sum()
     hour_counts = data['created_at'].str.split('T', expand=True)[1].str[:2].value_counts().sort_index()
 
     return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts
+
 
 def main():
     st.title("Post Analytics")
