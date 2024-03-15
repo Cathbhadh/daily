@@ -34,8 +34,8 @@ def count_stats(data):
     nsfw_posts = data['nsfw'].sum()
     nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
     date_counts = data['created_at'].str.split('T', expand=True)[0].value_counts().sort_index(ascending=False)
-    nsfw_likes = data[data['nsfw']]['likes'].sum()
-    non_nsfw_likes = data[~data['nsfw']]['likes'].sum()
+    nsfw_likes = data.loc[data['nsfw'].notna() & data['nsfw'], 'likes'].sum()
+    non_nsfw_likes = data.loc[data['nsfw'].notna() & ~data['nsfw'], 'likes'].sum()
     hour_counts = data['created_at'].str.split('T', expand=True)[1].str[:2].value_counts().sort_index()
 
     return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts
