@@ -10,6 +10,7 @@ def fetch_data(offset):
 def count_stats(data):
     total_likes = sum(post.get('likes', 0) for post in data)
     total_posts = len(data)
+    nsfw_posts = sum(post.get('nsfw', False) for post in data)
     date_counts = {}
 
     for post in data:
@@ -18,14 +19,16 @@ def count_stats(data):
             date = created_at.split('T')[0]
             date_counts[date] = date_counts.get(date, 0) + 1
 
-    return total_likes, total_posts, date_counts
+    nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
+
+    return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts
 
 def main():
     st.title("Post Analytics")
 
     offset = 0
     all_data = []
-    max_posts = 10000  # Maximum number of posts to process
+    max_posts = 200000  # Maximum number of posts to process
 
     while len(all_data) < max_posts:
         data = fetch_data(offset)
@@ -38,10 +41,11 @@ def main():
 
         st.write(f"Fetched {len(data)} posts. Total posts processed: {len(all_data)}")
 
-    total_likes, total_posts, date_counts = count_stats(all_data)
+    total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts = count_stats(all_data)
 
     st.write(f"Total Likes: {total_likes}")
     st.write(f"Total Posts: {total_posts}")
+    st.write(f"NSFW Posts: {nsfw_posts} ({nsfw_percentage:.2f}%)")
 
     st.subheader("Posts per Day")
     for date, count in sorted(date_counts.items(), reverse=True):
