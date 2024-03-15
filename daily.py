@@ -28,7 +28,7 @@ def main():
 
     offset = 0
     all_data = []
-    max_posts = 200000  # Maximum number of posts to process
+    max_posts = 50000  # Maximum number of posts to process
 
     while len(all_data) < max_posts:
         data = fetch_data(offset)
