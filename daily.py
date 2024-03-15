@@ -1,4 +1,5 @@
 import requests
+import json
 import streamlit as st
 import pandas as pd
 import concurrent.futures
@@ -13,10 +14,12 @@ def fetch_and_concat_data(offsets):
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
-    data = response.json()
+    data = json.loads(response.content)  # Convert string to Python object
 
+    # Get all keys from the dictionaries in data
     all_keys = [key for d in data for key in d.keys()]
     
+    # Convert the list of dictionaries to a dictionary of lists
     data_dict = {key: [d.get(key) for d in data] for key in set(all_keys)}
 
     return pd.DataFrame(data_dict)
@@ -33,7 +36,7 @@ def count_stats(data):
 
 def main():
     st.title("Post Analytics")
-    max_posts = 100000
+    max_posts = 1000
     offsets = range(0, max_posts, 500)
 
     all_data = fetch_and_concat_data(offsets)
