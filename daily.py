@@ -2,24 +2,13 @@ import requests
 import json
 import streamlit as st
 import pandas as pd
-import math
 import concurrent.futures
 
-def fetch_and_concat_data(offsets, chunksize=10000):
-    all_data = []
-
+def fetch_and_concat_data(offsets):
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        for offset in offsets:
-            data = fetch_data_for_offset(offset)
-            num_chunks = math.ceil(len(data) / chunksize)
-            for i in range(num_chunks):
-                start = i * chunksize
-                end = start + chunksize
-                chunk = data.iloc[start:end]
-                all_data.append(chunk)
-
-    return pd.concat(all_data, ignore_index=True)
-
+        futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
+        all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
+    return all_data
 
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
@@ -66,7 +55,7 @@ def count_stats(data):
 
 def main():
     st.title("Post Analytics")
-    max_posts = 90000
+    max_posts = 100000
     offsets = range(0, max_posts, 500)
     all_data = fetch_and_concat_data(offsets)
 
