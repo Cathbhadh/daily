@@ -2,14 +2,12 @@ import requests
 import streamlit as st
 import pandas as pd
 
-@st.cache_data(ttl=7200)
 def fetch_data(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
     data = response.json()
     return pd.DataFrame(data)
 
-@st.cache_data(ttl=7200)
 def count_stats(data):
     total_likes = data['likes'].sum()
     total_posts = len(data)
@@ -24,7 +22,7 @@ def main():
     st.title("Post Analytics")
     offset = 0
     all_data = pd.DataFrame()
-    max_posts = 60000
+    max_posts = 75000
 
     while len(all_data) < max_posts:
         data = fetch_data(offset)
