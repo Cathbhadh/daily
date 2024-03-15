@@ -1,42 +1,38 @@
 import requests
 import streamlit as st
-from datetime import datetime, timedelta
+import pandas as pd
 
+@st.cache_data(ttl=7200)
 def fetch_data(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
-    return response.json()
+    data = response.json()
+    return pd.DataFrame(data)
 
+@st.cache_data(ttl=7200)
 def count_stats(data):
-    total_likes = sum(post.get('likes', 0) for post in data)
+    total_likes = data['likes'].sum()
     total_posts = len(data)
-    nsfw_posts = sum(post.get('nsfw', False) for post in data)
-    date_counts = {}
-
-    for post in data:
-        created_at = post.get('created_at')
-        if created_at:
-            date = created_at.split('T')[0]
-            date_counts[date] = date_counts.get(date, 0) + 1
-
+    nsfw_posts = data['nsfw'].sum()
     nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
+
+    date_counts = data['created_at'].str.split('T', expand=True)[0].value_counts().sort_index(ascending=False)
 
     return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts
 
 def main():
     st.title("Post Analytics")
-
     offset = 0
-    all_data = []
-    max_posts = 50000  # Maximum number of posts to process
+    all_data = pd.DataFrame()
+    max_posts = 75000
 
     while len(all_data) < max_posts:
         data = fetch_data(offset)
-        if not data:
+        if data.empty:
             st.write(f"No more data to fetch. Processed {len(all_data)} posts.")
             break
 
-        all_data.extend(data)
+        all_data = pd.concat([all_data, data], ignore_index=True)
         offset += 500
 
         st.write(f"Fetched {len(data)} posts. Total posts processed: {len(all_data)}")
@@ -48,7 +44,7 @@ def main():
     st.write(f"NSFW Posts: {nsfw_posts} ({nsfw_percentage:.2f}%)")
 
     st.subheader("Posts per Day")
-    for date, count in sorted(date_counts.items(), reverse=True):
+    for date, count in date_counts.items():
         st.write(f"{date}: {count}")
 
 if __name__ == "__main__":
