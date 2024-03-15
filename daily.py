@@ -55,7 +55,7 @@ def count_stats(data):
 
 def main():
     st.title("Post Analytics")
-    max_posts = 100000
+    max_posts = 86500
     offsets = range(0, max_posts, 500)
     all_data = fetch_and_concat_data(offsets)
 
