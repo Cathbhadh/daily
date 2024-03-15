@@ -1,8 +1,10 @@
 import requests
 import streamlit as st
 import pandas as pd
+import concurrent.futures
 
-def fetch_data(offset):
+@st.cache_data(ttl=7200)
+def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
     data = response.json()
@@ -20,20 +22,12 @@ def count_stats(data):
 
 def main():
     st.title("Post Analytics")
-    offset = 0
-    all_data = pd.DataFrame()
-    max_posts = 75000
+    max_posts = 50000
+    offsets = range(0, max_posts, 500)
 
-    while len(all_data) < max_posts:
-        data = fetch_data(offset)
-        if data.empty:
-            st.write(f"No more data to fetch. Processed {len(all_data)} posts.")
-            break
-
-        all_data = pd.concat([all_data, data], ignore_index=True)
-        offset += 500
-
-        st.write(f"Fetched {len(data)} posts. Total posts processed: {len(all_data)}")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
+        all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
 
     total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts = count_stats(all_data)
 
