@@ -38,8 +38,20 @@ def count_stats(data):
     non_nsfw_likes = data[~data['nsfw']]['likes'].sum()
     hour_counts = data['created_at'].str.split('T', expand=True)[1].str[:2].value_counts().sort_index()
 
-    return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts
+    # Calculate average likes for NSFW posts
+    if nsfw_posts > 0:
+        avg_nsfw_likes = nsfw_likes / nsfw_posts
+    else:
+        avg_nsfw_likes = 0
 
+    # Calculate average likes for non-NSFW posts
+    non_nsfw_posts = total_posts - nsfw_posts
+    if non_nsfw_posts > 0:
+        avg_non_nsfw_likes = non_nsfw_likes / non_nsfw_posts
+    else:
+        avg_non_nsfw_likes = 0
+
+    return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts, avg_nsfw_likes, avg_non_nsfw_likes
 
 def main():
     st.title("Post Analytics")
@@ -47,13 +59,15 @@ def main():
     offsets = range(0, max_posts, 500)
     all_data = fetch_and_concat_data(offsets)
 
-    total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts = count_stats(all_data)
+    total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts, avg_nsfw_likes, avg_non_nsfw_likes = count_stats(all_data)
 
     st.write(f"Total Likes: {total_likes}")
     st.write(f"Total Posts: {total_posts}")
     st.write(f"NSFW Posts: {nsfw_posts} ({nsfw_percentage:.2f}%)")
     st.write(f"NSFW Likes: {nsfw_likes}")
     st.write(f"Non-NSFW Likes: {non_nsfw_likes}")
+    st.write(f"Average NSFW Likes: {avg_nsfw_likes:.2f}")
+    st.write(f"Average Non-NSFW Likes: {avg_non_nsfw_likes:.2f}")
 
     st.subheader("Posts per Day")
     for date, count in date_counts.items():
