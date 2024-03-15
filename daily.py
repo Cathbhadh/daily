@@ -15,10 +15,12 @@ def fetch_data_for_offset(offset):
     response = requests.get(url)
     data = response.json()
 
-    data_dict = {key: [d.get(key) for d in data] for key in set().union(*data)}
+    all_keys = [key for d in data for key in d.keys()]
+    
+    data_dict = {key: [d.get(key) for d in data] for key in set(all_keys)}
 
     return pd.DataFrame(data_dict)
-
+    
 def count_stats(data):
     total_likes = data['likes'].sum()
     total_posts = len(data)
