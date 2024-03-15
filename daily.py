@@ -2,16 +2,20 @@ import requests
 import json
 import streamlit as st
 import pandas as pd
+import math
 import concurrent.futures
 
-def fetch_and_concat_data(offsets):
+def fetch_and_concat_data(offsets, chunksize=10000):
     all_data = []
-    chunksize = 10000  # Adjust this value based on your available memory
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for offset in offsets:
             data = fetch_data_for_offset(offset)
-            for chunk in pd.DataFrame(data).chunks(chunksize):
+            num_chunks = math.ceil(len(data) / chunksize)
+            for i in range(num_chunks):
+                start = i * chunksize
+                end = start + chunksize
+                chunk = data.iloc[start:end]
                 all_data.append(chunk)
 
     return pd.concat(all_data, ignore_index=True)
