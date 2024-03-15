@@ -4,13 +4,11 @@ import streamlit as st
 import pandas as pd
 import concurrent.futures
 
-@st.cache_data(ttl=7200)
 def fetch_and_concat_data(offsets):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(fetch_data_for_offset, offset) for offset in offsets]
         all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
     return all_data
-
 
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
@@ -21,43 +19,56 @@ def fetch_data_for_offset(offset):
         data = json.loads(response.content)  # If the response is a single string
 
     if isinstance(data, list):
-        # Get all keys from the dictionaries in data
         all_keys = [key for d in data for key in d.keys()]
-        # Convert the list of dictionaries to a dictionary of lists
         data_dict = {key: [d.get(key) for d in data] for key in set(all_keys)}
     else:
-        # If the data is a single string, create a DataFrame with a single row
         data_dict = {"response": [data]}
 
     return pd.DataFrame(data_dict)
 
-    
 def count_stats(data):
+    data['nsfw'] = data['nsfw'].astype(bool)
+
     total_likes = data['likes'].sum()
     total_posts = len(data)
     nsfw_posts = data['nsfw'].sum()
     nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
-
     date_counts = data['created_at'].str.split('T', expand=True)[0].value_counts().sort_index(ascending=False)
+    nsfw_likes = data[data['nsfw']]['likes'].sum()
+    non_nsfw_likes = data[~data['nsfw']]['likes'].sum()
 
-    return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts
+    if nsfw_posts > 0:
+        avg_nsfw_likes = nsfw_likes / nsfw_posts
+    else:
+        avg_nsfw_likes = 0
+
+    non_nsfw_posts = total_posts - nsfw_posts
+    if non_nsfw_posts > 0:
+        avg_non_nsfw_likes = non_nsfw_likes / non_nsfw_posts
+    else:
+        avg_non_nsfw_likes = 0
+
+    return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, avg_nsfw_likes, avg_non_nsfw_likes
 
 def main():
     st.title("Post Analytics")
-    max_posts = 150000
+    max_posts = 1000
     offsets = range(0, max_posts, 500)
-
     all_data = fetch_and_concat_data(offsets)
 
-    total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts = count_stats(all_data)
+    total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, avg_nsfw_likes, avg_non_nsfw_likes = count_stats(all_data)
 
     st.write(f"Total Likes: {total_likes}")
     st.write(f"Total Posts: {total_posts}")
     st.write(f"NSFW Posts: {nsfw_posts} ({nsfw_percentage:.2f}%)")
+    st.write(f"NSFW Likes: {nsfw_likes}")
+    st.write(f"Non-NSFW Likes: {non_nsfw_likes}")
+    st.write(f"Average NSFW Likes: {avg_nsfw_likes:.2f}")
+    st.write(f"Average Non-NSFW Likes: {avg_non_nsfw_likes:.2f}")
 
     st.subheader("Posts per Day")
     for date, count in date_counts.items():
         st.write(f"{date}: {count}")
-
+        
 if __name__ == "__main__":
     main()
