@@ -35,14 +35,14 @@ def count_stats(data):
     nsfw_percentage = (nsfw_posts / total_posts) * 100 if total_posts > 0 else 0
     date_counts = data['created_at'].str.split('T', expand=True)[0].value_counts().sort_index(ascending=False)
     nsfw_likes = data.loc[data['nsfw'].notna() & data['nsfw'], 'likes'].sum()
-    non_nsfw_likes = data.loc[data['nsfw'].notna() & ~data['nsfw'], 'likes'].sum()
+    non_nsfw_likes = data.loc[data['nsfw'].notna() & (~data['nsfw']), 'likes'].sum()
     hour_counts = data['created_at'].str.split('T', expand=True)[1].str[:2].value_counts().sort_index()
 
     return total_likes, total_posts, nsfw_posts, nsfw_percentage, date_counts, nsfw_likes, non_nsfw_likes, hour_counts
 
 def main():
     st.title("Post Analytics")
-    max_posts = 100000
+    max_posts = 1000
     offsets = range(0, max_posts, 500)
     all_data = fetch_and_concat_data(offsets)
 
