@@ -11,18 +11,26 @@ def fetch_and_concat_data(offsets):
         all_data = pd.concat([future.result() for future in concurrent.futures.as_completed(futures)], ignore_index=True)
     return all_data
 
+
 def fetch_data_for_offset(offset):
     url = f"https://api.yodayo.com/v1/posts?limit=500&offset={offset}&width=600&include_nsfw=true"
     response = requests.get(url)
-    data = json.loads(response.content)  # Convert string to Python object
+    try:
+        data = response.json()  # If the response is a list of dictionaries
+    except ValueError:
+        data = json.loads(response.content)  # If the response is a single string
 
-    # Get all keys from the dictionaries in data
-    all_keys = [key for d in data for key in d.keys()]
-    
-    # Convert the list of dictionaries to a dictionary of lists
-    data_dict = {key: [d.get(key) for d in data] for key in set(all_keys)}
+    if isinstance(data, list):
+        # Get all keys from the dictionaries in data
+        all_keys = [key for d in data for key in d.keys()]
+        # Convert the list of dictionaries to a dictionary of lists
+        data_dict = {key: [d.get(key) for d in data] for key in set(all_keys)}
+    else:
+        # If the data is a single string, create a DataFrame with a single row
+        data_dict = {"response": [data]}
 
     return pd.DataFrame(data_dict)
+
     
 def count_stats(data):
     total_likes = data['likes'].sum()
