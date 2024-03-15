@@ -24,7 +24,7 @@ def main():
     st.title("Post Analytics")
     offset = 0
     all_data = pd.DataFrame()
-    max_posts = 75000
+    max_posts = 60000
 
     while len(all_data) < max_posts:
         data = fetch_data(offset)
