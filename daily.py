@@ -25,14 +25,18 @@ def main():
 
     offset = 0
     all_data = []
+    max_posts = 10000  # Maximum number of posts to process
 
-    while True:
+    while len(all_data) < max_posts:
         data = fetch_data(offset)
         if not data:
+            st.write(f"No more data to fetch. Processed {len(all_data)} posts.")
             break
 
         all_data.extend(data)
         offset += 500
+
+        st.write(f"Fetched {len(data)} posts. Total posts processed: {len(all_data)}")
 
     total_likes, total_posts, date_counts = count_stats(all_data)
 
